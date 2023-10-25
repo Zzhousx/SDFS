@@ -1,4 +1,20 @@
-function [W] = SDFS(X,param)
+function [X_new] = SDFS(X,param)
+%% Notes:
+% Inputs:
+%   X - Original data matrix
+%   param - Parameter set
+% Outputs:
+%   X_new - New low-dimensional data matrix 
+%%%%%%%%%%%%%%%%%%%%%%%%%
+% Example usage
+% MATLAB
+%%%%%%%%%%%%%%%%%%%%%%%%%
+% clc; clear; warning off;
+% load('MSRC_V1_5views.mat');
+% rng('default');
+% param.v = size(X,2); param.n=210; param.c = 7; param.alpha = 1; param.lambda = 1; param.gamma = 1; param.gamma2 = 1;
+% [X_new] = SDFS(X,param); 
+%%%%%%%%%%%
 %% ===================== Parameters =====================
 %%paramter:
 % gamma : orthogonal constraint on W
@@ -12,6 +28,7 @@ NITER = 100; % Maximum number of iterations
 n = param.n; % Number of samples
 v = param.v; % Number of views
 c = param.c; % Number of classes
+select=0.15 ; % The proportion of the selected feature.
 c1=2*c;
 pn=15;
 islocal=1;
@@ -23,12 +40,16 @@ options.WeightMode = 'HeatKernel';
 options.t = 10;
 %% ===================== Normalize  =====================
 temp_std=cell(1,v);
+XX=[];
 for vv=1:v
     temp_std{vv}=std(X{1,vv},0,2);
     for i=1:size(X{1,vv},1)
           meanvalue_fea=mean(X{1,vv}(i,:));
           X{1,vv}(i,:)=(X{1,vv}(i,:)-meanvalue_fea)/temp_std{vv}(i,:);
     end
+    X{vv}=X{vv}';
+    XX=[XX;X{1,vv}];  
+    X{vv}=X{vv}';
 end
 %% ===================== initialize =====================
 W=cell(1,v); %feature selection matrix
@@ -176,6 +197,23 @@ for iter = 1:NITER
             break;
         end
     end
+%%
+for i = 1:v
+    W{i} = W{i}';
+end
+Wcon = DataConcatenate(W);
+Wcon = Wcon';
+for i = 1:v
+    W{i} = W{i}';
+end
+d = size(XX,1);
+selectedFeas = ceil(select*d);
+w = [];
+for i = 1:d
+    w = [w norm(Wcon(i,:),2)];
+end
+[~,index] = sort(w,'descend');
+X_new = XX(index(1:selectedFeas),:);
 end
 
 
